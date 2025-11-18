@@ -1,0 +1,53 @@
+# Robot Navigation Program
+# This is a RoboScript file for the RoboScript Parser
+
+ROBOT myRobot
+
+# Simple navigation
+MOVE forward 100
+TURN left 90
+MOVE forward 50
+
+# Obstacle avoidance
+IF sensor.distance < 30 THEN
+  STOP
+  TURN right 180
+  MOVE backward 20
+END
+
+# LED blinking sequence
+REPEAT 3 TIMES
+  LED on RED
+  WAIT 500
+  LED off
+  WAIT 500
+END
+
+# Servo and motor control
+SERVO arm TO 90
+MOTOR left SPEED 75
+MOTOR right SPEED 75
+
+# Light-sensitive movement
+WHILE sensor.light > 50 DO
+  MOVE forward 10
+  WAIT 100
+END
+
+# Function for obstacle avoidance
+FUNCTION avoidObstacle
+  IF sensor.distance < 20 THEN
+    STOP
+    TURN right 45
+    MOVE backward 10
+  END
+END
+
+# Call the function
+CALL avoidObstacle
+
+# Send completion message
+SEND message "Task complete"
+
+END
+
