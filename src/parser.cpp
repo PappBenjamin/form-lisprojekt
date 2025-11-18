@@ -209,7 +209,9 @@ std::shared_ptr<RepeatStatement> Parser::parseRepeatStatement() {
     auto body = parseBlock("END");
     consume("END");
 
-    return std::make_shared<RepeatStatement>(times);
+    auto repeatStmt = std::make_shared<RepeatStatement>(times);
+    repeatStmt->body = body;  // Store the body!
+    return repeatStmt;
 }
 
 std::shared_ptr<LEDStatement> Parser::parseLEDStatement() {
