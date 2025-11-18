@@ -1,0 +1,95 @@
+# Build directories
+build/
+cmake-build-debug/
+cmake-build-release/
+cmake-build-*/
+out/
+dist/
+bin/
+lib/
+
+# CMake files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+*.cmake
+Makefile
+compile_commands.json
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+*.out
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+.settings/
+.project
+.cproject
+
+# CLion
+.cmake/
+cmake-build-debug/
+cmake-build-release/
+cmake-build-asan/
+CMakeLists.txt.user
+CMakeLists.txt.user.*
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+xcuserdata/
+DerivedData/
+build/
+*.ipa
+*.dSYM/
+
+# Visual Studio
+.vs/
+*.sln
+*.vcxproj
+*.vcxproj.filters
+*.sln
+Debug/
+Release/
+
+# Dependencies
+_deps/
+.conan/
+vcpkg_installed/
+
+# Generated files
+robot_code.cpp
+*.log
+*.tmp
+
+# OS files
+.DS_Store
+Thumbs.db
+.env
+.env.local
+
+# Temporary files
+*.bak
+*.backup
+*~
+*.swp
+*.swo
+*.orig
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
