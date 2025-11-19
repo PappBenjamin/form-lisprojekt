@@ -77,6 +77,12 @@ void PeglibParser::parseStatements(const std::vector<std::string>& lines, size_t
                 statements.push_back(ledStmt);
             }
             index++;
+        } else if (line.find("MOTOR") == 0) {
+            auto motorStmt = parseMotor(line);
+            if (motorStmt) {
+                statements.push_back(motorStmt);
+            }
+            index++;
         } else if (line == "STOP") {
             statements.push_back(std::make_shared<StopStatement>());
             index++;
@@ -144,6 +150,51 @@ std::shared_ptr<LEDStatement> PeglibParser::parseLED(const std::string& line) {
     return std::make_shared<LEDStatement>(state, color);
 }
 
+std::shared_ptr<MotorStatement> PeglibParser::parseMotor(const std::string& line) {
+    // Parse "MOTOR SPEED 100" or "MOTOR left SPEED 75" or similar variations
+    std::vector<std::string> parts = split(line, ' ');
+
+    // Handle different motor command formats
+    // Format 1: "MOTOR SPEED 100" (default motor)
+    // Format 2: "MOTOR left SPEED 75" (specific motor)
+
+    std::string motorName = "default";
+    int speed = 0;
+
+    if (parts.size() < 3) {
+        return nullptr;
+    }
+
+    try {
+        // Check if second part is a number (MOTOR SPEED 100 format)
+        if (parts.size() >= 3 && parts[1] == "SPEED") {
+            speed = std::stoi(parts[2]);
+            motorName = "default";
+        }
+        // Check if it's MOTOR <name> SPEED <value> format
+        else if (parts.size() >= 4 && parts[2] == "SPEED") {
+            motorName = parts[1];
+            speed = std::stoi(parts[3]);
+        }
+        // Check for MOTOR <value> format (assume it's speed)
+        else if (parts.size() >= 2) {
+            speed = std::stoi(parts[1]);
+            motorName = "default";
+        }
+        else {
+            return nullptr;
+        }
+
+        // Clamp speed to 0-100 range
+        if (speed < 0) speed = 0;
+        if (speed > 100) speed = 100;
+
+        return std::make_shared<MotorStatement>(motorName, speed);
+    } catch (...) {
+        return nullptr;
+    }
+}
+
 void PeglibParser::semanticAnalysis(const std::shared_ptr<Program>& program) {
     for (const auto& funcName : calledFunctions) {
         if (declaredFunctions.find(funcName) == declaredFunctions.end()) {
@@ -159,4 +210,3 @@ void PeglibParser::semanticAnalysis(const std::shared_ptr<Program>& program) {
         }
     }
 }
-

@@ -39,6 +39,11 @@ private:
     std::shared_ptr<LEDStatement> parseLED(const std::string& line);
 
     /**
+     * @brief Parse MOTOR statement
+     */
+    std::shared_ptr<MotorStatement> parseMotor(const std::string& line);
+
+    /**
      * @brief Perform semantic analysis on AST
      */
     void semanticAnalysis(const std::shared_ptr<Program>& program);
