@@ -3,6 +3,7 @@
 #include <sstream>
 #include "../include/lexer.h"
 #include "../include/parser.h"
+#include "../include/peglib_parser.h"
 #include "../include/exceptions.h"
 #include "../include/arduino_generator.h"
 #include <nlohmann/json.hpp>
@@ -100,6 +101,55 @@ void parseAndDisplay(const std::string& code) {
 }
 
 /**
+ * @brief Parse and display results with Peglib
+ */
+void parseAndDisplayPeglib(const std::string& code) {
+    try {
+        std::cout << "\n" << std::string(80, '=') << "\n";
+        std::cout << "Parsing RoboScript Code (Peglib Parser)\n";
+        std::cout << std::string(80, '=') << "\n\n";
+
+        // Syntax analysis with Peglib
+        std::cout << "[1] Parsing (Peglib)...\n";
+        PeglibParser parser(code);
+        auto ast = parser.parse();
+        std::cout << "✓ Peglib parsing successful!\n\n";
+
+        // Display AST as JSON
+        std::cout << "[2] Abstract Syntax Tree (JSON):\n";
+        json astJson = ast->toJson();
+        std::cout << astJson.dump(2) << "\n\n";
+
+        // Generate Arduino Code
+        std::cout << std::string(80, '=') << "\n";
+        std::cout << "[3] Arduino Code Generation...\n";
+        std::cout << std::string(80, '=') << "\n\n";
+
+        ArduinoGenerator generator;
+        std::string arduinoCode = generator.generate(ast);
+
+        // Write Arduino code to file
+        writeArduinoToFile(arduinoCode, "robot_code.cpp");
+        std::cout << "\n";
+
+        // Summary
+        std::cout << std::string(80, '=') << "\n";
+        std::cout << "Summary:\n";
+        std::cout << "  Total statements: " << ast->statements.size() << "\n";
+        std::cout << "  AST size: " << astJson.dump().length() << " characters\n";
+        std::cout << "  Arduino code size: " << arduinoCode.length() << " characters\n";
+        std::cout << std::string(80, '=') << "\n";
+
+    } catch (const ParserException& e) {
+        std::cerr << "\n✗ Parser Error:\n" << e.toString() << "\n";
+    } catch (const SemanticException& e) {
+        std::cerr << "\n✗ Semantic Error:\n" << e.toString() << "\n";
+    } catch (const std::exception& e) {
+        std::cerr << "\n✗ Error: " << e.what() << "\n";
+    }
+}
+
+/**
  * @brief Read entire file into string
  */
 std::string readFile(const std::string& filename) {
@@ -114,6 +164,9 @@ std::string readFile(const std::string& filename) {
 
 int main() {
     std::cout << "RoboScript Parser v1.0 with Arduino Code Generation\n";
+    std::cout << "Available parsers:\n";
+    std::cout << "  1. Traditional Parser (Lexer + Parser)\n";
+    std::cout << "  2. Peglib Parser (PEG-based)\n";
     std::cout << "Reading from: program.robo\n";
 
     std::string code;
@@ -131,8 +184,9 @@ int main() {
     std::cout << code << "\n";
     std::cout << std::string(80, '-') << "\n";
 
-    // Parse and display results
-    parseAndDisplay(code);
+    // Use Peglib parser by default
+    std::cout << "\nUsing: Peglib Parser\n";
+    parseAndDisplayPeglib(code);
 
     return 0;
 }

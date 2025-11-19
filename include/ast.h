@@ -11,6 +11,7 @@ using json = nlohmann::json;
 /**
  * @brief Base class for all AST nodes
  */
+
 class ASTNode {
 public:
     virtual ~ASTNode() = default;

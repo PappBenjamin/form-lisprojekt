@@ -42,6 +42,7 @@ char Lexer::peekChar(size_t offset) const {
     return source[pos + offset];
 }
 
+// Basically moves to the next character in the source code for lexing
 void Lexer::advance() {
     if (pos < source.length()) {
         if (source[pos] == '\n') {

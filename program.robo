@@ -1,8 +1,3 @@
-# Simple LED Blink Program
-# Blinks a single LED every second
-
-ROBOT ledBlinker
-
 # Blink LED every second
 REPEAT 10 TIMES
   LED on RED
