@@ -1,6 +1,4 @@
 ﻿//
-//  peglib.h
-//
 //  Copyright (c) 2022 Yuji Hirose. All rights reserved.
 //  MIT License
 //
