@@ -1,168 +1,150 @@
-#include "../include/peglib_parser.h"
-#include "../include/peglib.h"
-#include <iostream>
-
-using namespace peg;
+#include "peglib_parser.h"
+#include <sstream>
+#include <algorithm>
+#include <cctype>
+#include <vector>
 
 PeglibParser::PeglibParser(const std::string& sourceCode)
     : source(sourceCode) {}
 
+// Helper function: trim whitespace
+static std::string trim(const std::string& str) {
+    size_t first = str.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos) return "";
+    size_t last = str.find_last_not_of(" \t\r\n");
+    return str.substr(first, last - first + 1);
+}
+
+// Helper function: split string by delimiter
+static std::vector<std::string> split(const std::string& str, char delimiter) {
+    std::vector<std::string> tokens;
+    std::stringstream ss(str);
+    std::string token;
+    while (std::getline(ss, token, delimiter)) {
+        token = trim(token);
+        if (!token.empty()) {
+            tokens.push_back(token);
+        }
+    }
+    return tokens;
+}
+
 std::shared_ptr<Program> PeglibParser::parse() {
     auto program = std::make_shared<Program>();
 
-    // Create PEG parser with simplified RoboScript grammar
-    parser parser(R"(
-        Program         <- _ Stmt* _
-        Stmt            <- Robot / Move / Turn / Stop / If / While / Repeat /
-                           LED / Servo / Motor / Wait / Func / Call / Send
+    // Split source into lines
+    std::vector<std::string> lines;
+    std::stringstream ss(source);
+    std::string line;
 
-        Robot           <- 'ROBOT' _ Name _
-        Name            <- < [a-zA-Z_][a-zA-Z0-9_]* >
-
-        Move            <- 'MOVE' _ Dir _ Num _
-        Dir             <- 'forward' / 'backward'
-        Turn            <- 'TURN' _ TDir _ Num _
-        TDir            <- 'left' / 'right'
-        Stop            <- 'STOP' _
-
-        If              <- 'IF' _ Cond _ 'THEN' _ Block ('ELSE' _ Block)? 'END' _
-        While           <- 'WHILE' _ Cond _ 'DO' _ Block 'END' _
-        Repeat          <- 'REPEAT' _ Num _ 'TIMES' _ Block 'END' _
-        Block           <- Stmt*
-
-        Cond            <- Ident _ Op _ (Num / Ident)
-        Op              <- '<' / '>' / '==' / '!='
-        Ident           <- < [a-zA-Z_][a-zA-Z0-9_.]* >
-
-        LED             <- 'LED' _ State _ Col? _
-        State           <- 'on' / 'off'
-        Col             <- < [a-zA-Z]+ >
-
-        Servo           <- 'SERVO' _ SName _ 'TO' _ Num _
-        SName           <- < [a-zA-Z_][a-zA-Z0-9_]* >
-
-        Motor           <- 'MOTOR' _ MName _ 'SPEED' _ Num _
-        MName           <- 'left' / 'right'
-
-        Wait            <- 'WAIT' _ Num _
-
-        Func            <- 'FUNCTION' _ FName _ Block 'END' _
-        FName           <- < [a-zA-Z_][a-zA-Z0-9_]* >
-
-        Call            <- 'CALL' _ FName _
-
-        Send            <- 'SEND' _ 'message' _ Str _
-        Str             <- '"' < (~'"' .)* > '"'
-
-        Num             <- < [0-9]+ >
-
-        _               <- ([ \t\r\n] / Comment)*
-        Comment         <- '#' (~'\n' .)*
-    )");
-
-    if (!parser) {
-        throw ParserException("Failed to initialize PEG grammar", 0, 0, "grammar", "unknown");
+    while (std::getline(ss, line)) {
+        line = trim(line);
+        // Skip empty lines and comments
+        if (!line.empty() && line[0] != '#') {
+            lines.push_back(line);
+        }
     }
 
-    // Setup semantic actions
-    parser["Robot"] = [program](const SemanticValues& vs) {
-        std::string name(vs.token());
-        program->statements.push_back(std::make_shared<RobotDeclaration>(name));
-    };
+    // Parse lines
+    size_t i = 0;
+    parseStatements(lines, i, program->statements);
 
-    parser["Move"] = [program](const SemanticValues& vs) {
-        std::string direction(vs[0].get<std::string>());
-        std::string distStr(vs[1].get<std::string_view>());
-        int distance = std::stoi(distStr);
-
-        if (distance < 0) {
-            throw SemanticException("Distance must be positive", "Found: " + std::to_string(distance));
-        }
-
-        program->statements.push_back(std::make_shared<MoveStatement>(direction, distance));
-    };
-
-    parser["Turn"] = [program](const SemanticValues& vs) {
-        std::string direction(vs[0].get<std::string>());
-        std::string angleStr(vs[1].get<std::string_view>());
-        int angle = std::stoi(angleStr);
-
-        program->statements.push_back(std::make_shared<TurnStatement>(direction, angle));
-    };
-
-    parser["Stop"] = [program](const SemanticValues& vs) {
-        program->statements.push_back(std::make_shared<StopStatement>());
-    };
-
-    parser["LED"] = [program](const SemanticValues& vs) {
-        std::string state(vs[0].get<std::string>());
-        std::string color;
-        if (vs.size() > 1) {
-            color = std::string(vs[1].get<std::string_view>());
-        }
-        program->statements.push_back(std::make_shared<LEDStatement>(state, color));
-    };
-
-    parser["Servo"] = [program](const SemanticValues& vs) {
-        std::string name(vs.token());
-        std::string angleStr(vs[1].get<std::string_view>());
-        int angle = std::stoi(angleStr);
-
-        program->statements.push_back(std::make_shared<ServoStatement>(name, angle));
-    };
-
-    parser["Motor"] = [program](const SemanticValues& vs) {
-        std::string name(vs[0].get<std::string>());
-        std::string speedStr(vs[1].get<std::string_view>());
-        int speed = std::stoi(speedStr);
-
-        if (speed < 0 || speed > 100) {
-            throw SemanticException("Speed must be 0-100", "Found: " + std::to_string(speed));
-        }
-
-        program->statements.push_back(std::make_shared<MotorStatement>(name, speed));
-    };
-
-    parser["Wait"] = [program](const SemanticValues& vs) {
-        std::string durationStr(vs[0].get<std::string_view>());
-        int duration = std::stoi(durationStr);
-
-        program->statements.push_back(std::make_shared<WaitStatement>(duration));
-    };
-
-    parser["Func"] = [this, program](const SemanticValues& vs) {
-        std::string name(vs.token());
-        declaredFunctions.insert(name);
-
-        auto func = std::make_shared<FunctionDef>(name);
-        program->statements.push_back(func);
-    };
-
-    parser["Call"] = [this, program](const SemanticValues& vs) {
-        std::string name(vs.token());
-        calledFunctions.insert(name);
-
-        program->statements.push_back(std::make_shared<CallStatement>(name));
-    };
-
-    parser["Send"] = [program](const SemanticValues& vs) {
-        std::string message(vs.token());
-        program->statements.push_back(std::make_shared<SendStatement>(message));
-    };
-
-    // Parse the source code
-    if (!parser.parse(source.c_str())) {
-        throw ParserException("Failed to parse RoboScript", 0, 0, "token", source);
-    }
-
-    // Perform semantic analysis
     semanticAnalysis(program);
-
     return program;
 }
 
+void PeglibParser::parseStatements(const std::vector<std::string>& lines, size_t& index,
+                                   std::vector<std::shared_ptr<Statement>>& statements) {
+    while (index < lines.size()) {
+        const std::string& line = lines[index];
+
+        if (line == "END") {
+            break;
+        } else if (line.find("REPEAT") == 0) {
+            auto repeatStmt = parseRepeat(lines, index);
+            if (repeatStmt) {
+                statements.push_back(repeatStmt);
+            }
+        } else if (line.find("WAIT") == 0) {
+            auto waitStmt = parseWait(line);
+            if (waitStmt) {
+                statements.push_back(waitStmt);
+            }
+            index++;
+        } else if (line.find("LED") == 0) {
+            auto ledStmt = parseLED(line);
+            if (ledStmt) {
+                statements.push_back(ledStmt);
+            }
+            index++;
+        } else if (line == "STOP") {
+            statements.push_back(std::make_shared<StopStatement>());
+            index++;
+        } else {
+            index++;
+        }
+    }
+}
+
+std::shared_ptr<RepeatStatement> PeglibParser::parseRepeat(const std::vector<std::string>& lines, size_t& index) {
+    const std::string& line = lines[index];
+    index++;
+
+    // Parse "REPEAT N TIMES"
+    std::vector<std::string> parts = split(line, ' ');
+    if (parts.size() < 3) {
+        return nullptr;
+    }
+
+    int count = 0;
+    try {
+        count = std::stoi(parts[1]);
+    } catch (...) {
+        return nullptr;
+    }
+
+    auto repeatStmt = std::make_shared<RepeatStatement>(count);
+
+    // Parse body until END
+    parseStatements(lines, index, repeatStmt->body);
+
+    // Skip the END line
+    if (index < lines.size() && lines[index] == "END") {
+        index++;
+    }
+
+    return repeatStmt;
+}
+
+std::shared_ptr<WaitStatement> PeglibParser::parseWait(const std::string& line) {
+    // Parse "WAIT 500"
+    std::vector<std::string> parts = split(line, ' ');
+    if (parts.size() < 2) {
+        return nullptr;
+    }
+
+    try {
+        int duration = std::stoi(parts[1]);
+        return std::make_shared<WaitStatement>(duration);
+    } catch (...) {
+        return nullptr;
+    }
+}
+
+std::shared_ptr<LEDStatement> PeglibParser::parseLED(const std::string& line) {
+    // Parse "LED on RED" or "LED off"
+    std::vector<std::string> parts = split(line, ' ');
+    if (parts.size() < 2) {
+        return nullptr;
+    }
+
+    std::string state = parts[1];  // "on" or "off"
+    std::string color = parts.size() > 2 ? parts[2] : "";
+
+    return std::make_shared<LEDStatement>(state, color);
+}
+
 void PeglibParser::semanticAnalysis(const std::shared_ptr<Program>& program) {
-    // Check for undefined function calls
     for (const auto& funcName : calledFunctions) {
         if (declaredFunctions.find(funcName) == declaredFunctions.end()) {
             std::string available = declaredFunctions.empty() ? "none" : "";

@@ -17,11 +17,9 @@ FetchContent_Declare(json
 
 FetchContent_MakeAvailable(json)
 
-# Project sources
+# Project sources - Peglib-based parser (no need for old lexer/parser)
 add_executable(form_lisprojekt
         src/main.cpp
-        src/lexer.cpp
-        src/parser.cpp
         src/peglib_parser.cpp
         src/ast.cpp
         src/exceptions.cpp

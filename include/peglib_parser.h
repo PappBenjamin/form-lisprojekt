@@ -18,6 +18,27 @@ private:
     std::unordered_set<std::string> calledFunctions;
 
     /**
+     * @brief Parse statements from lines
+     */
+    void parseStatements(const std::vector<std::string>& lines, size_t& index,
+                        std::vector<std::shared_ptr<Statement>>& statements);
+
+    /**
+     * @brief Parse REPEAT block
+     */
+    std::shared_ptr<RepeatStatement> parseRepeat(const std::vector<std::string>& lines, size_t& index);
+
+    /**
+     * @brief Parse WAIT statement
+     */
+    std::shared_ptr<WaitStatement> parseWait(const std::string& line);
+
+    /**
+     * @brief Parse LED statement
+     */
+    std::shared_ptr<LEDStatement> parseLED(const std::string& line);
+
+    /**
      * @brief Perform semantic analysis on AST
      */
     void semanticAnalysis(const std::shared_ptr<Program>& program);
@@ -39,4 +60,3 @@ public:
 };
 
 #endif // ROBOSCRIPT_PEGLIB_PARSER_H
-
