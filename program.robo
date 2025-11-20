@@ -4,11 +4,18 @@
 ROBOT ledBlinker
 
 # Blink LED every second
-REPEAT 10 TIMES
-  LED on RED
-  WAIT 500
+IF buttonPressed THEN
+  REPEAT 10 TIMES
+   WHILE TRUE DO
+    LED on RED
+    WAIT 500
+    LED off
+    WAIT 500
+    END
+  END
+  LED on GREEN
+  WAIT 2000
   LED off
-  WAIT 500
 END
 
 END

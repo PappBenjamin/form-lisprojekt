@@ -148,10 +148,31 @@ std::shared_ptr<StopStatement> Parser::parseStopStatement() {
 
 std::shared_ptr<Condition> Parser::parseCondition() {
     Token left = consume();
-    Token op = consume();
-    Token right = consume();
 
-    return std::make_shared<Condition>(left.value, op.value, right.value);
+    // Check if next token is an operator (comparison or logical operator)
+    // Common operators: ==, !=, <, >, <=, >=, AND, OR
+    const Token& nextToken = peek();
+
+    if (nextToken.type == TokenType::OPERATOR ||
+        nextToken.value == "==" || nextToken.value == "!=" ||
+        nextToken.value == "<" || nextToken.value == ">" ||
+        nextToken.value == "<=" || nextToken.value == ">=" ||
+        nextToken.value == "AND" || nextToken.value == "OR" ||
+        nextToken.value == "is" || nextToken.value == "THEN") {
+
+        // If next token is THEN, this is a simple boolean condition
+        if (nextToken.value == "THEN") {
+            return std::make_shared<Condition>(left.value, "", "");
+        }
+
+        // Parse as comparison condition
+        Token op = consume();
+        Token right = consume();
+        return std::make_shared<Condition>(left.value, op.value, right.value);
+    } else {
+        // Simple boolean condition (just an identifier)
+        return std::make_shared<Condition>(left.value, "", "");
+    }
 }
 
 std::shared_ptr<IfStatement> Parser::parseIfStatement() {
